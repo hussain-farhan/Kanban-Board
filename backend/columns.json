@@ -1,0 +1,17 @@
+{
+  "todo": {
+    "id": "todo",
+    "title": "To Do",
+    "taskIds": []
+  },
+  "inprogress": {
+    "id": "inprogress",
+    "title": "In Progress",
+    "taskIds": []
+  },
+  "done": {
+    "id": "done",
+    "title": "Done",
+    "taskIds": []
+  }
+}

@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 
 export function ArchivedTasksDialog({ open, onClose, archivedTasks, onRestore }) {
-  // Safely handle null or undefined archivedTasks
+  
   const tasks = archivedTasks || {};
 
   return (

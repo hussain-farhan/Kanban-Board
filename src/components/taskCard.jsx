@@ -42,7 +42,7 @@ export function TaskCard({ task, index, onDelete, onEdit, onArchive }) {
     due.setHours(0, 0, 0, 0);
     return due < today;
   };
-
+  
   const isDueSoon = (dueDate) => {
     if (!dueDate) return false;
     const today = new Date();

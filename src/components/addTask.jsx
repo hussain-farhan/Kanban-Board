@@ -1,8 +1,7 @@
-// addTask.jsx
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, TextField, Button, FormControl, InputLabel, Select, MenuItem, Box,} from "@mui/material";
 
-// Add initialColumnId to props
+
 export function AddTaskDialog({ open, onClose, onAdd, task, initialColumnId }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");

@@ -1,4 +1,3 @@
-// kanban-board.jsx
 import { useState, useEffect } from "react";
 import { DragDropContext } from "@hello-pangea/dnd";
 import {
@@ -10,6 +9,7 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import { AddTaskDialog as AddEditTaskDialog } from './addTask';
 import { ArchivedTasksDialog } from "./archivedTask";
 import axios from "axios";
+import { AddColumnDialog } from "./AddColumn";
 
 const backendUrl = "http://localhost:5000";
 
@@ -24,7 +24,8 @@ export default function KanbanBoard() {
   const [archivedTasks, setArchivedTasks] = useState({});
   const [dialogOpen, setDialogOpen] = useState(false);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
-  const [activeColumn, setActiveColumn] = useState(""); // This is where the column ID is stored
+  const [activeColumn, setActiveColumn] = useState("");
+  const [addColumnDialogOpen, setAddColumnDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
@@ -126,7 +127,7 @@ export default function KanbanBoard() {
   };
 
   const handleAddTask = (columnId) => {
-    setActiveColumn(columnId); // This correctly sets activeColumn
+    setActiveColumn(columnId);
     setEditingTask(null);
     setDialogOpen(true);
   };
@@ -152,15 +153,9 @@ export default function KanbanBoard() {
 
         setTasks(updatedTasks);
         showSnackbar("Task updated successfully");
-        // Ensure backend update for edits as well
-        // You can fetch all data again or manually update columns if task status changed during edit
-        // For simplicity, let's re-fetch for now, or call updateBackend if only task data changes.
-        // If status changed during edit, you'd need to re-manage taskIds in columns.
-        // For now, assuming status change on drag only.
-        updateBackend(updatedTasks, columns); // Important: update backend after edit
+        updateBackend(updatedTasks, columns);
       } else {
-        // The taskData now contains the status thanks to the change in AddTaskDialog
-        const column = columns[taskData.status]; // <--- Use taskData.status directly
+        const column = columns[taskData.status];
         if (!column) {
           console.error("Invalid column ID on task creation:", taskData.status);
           showSnackbar("Invalid column selected", "error");
@@ -171,7 +166,7 @@ export default function KanbanBoard() {
         const newTask = {
           id: newTaskId,
           ...taskData,
-          status: taskData.status, // <--- Use taskData.status
+          status: taskData.status,
         };
 
         const updatedTasks = {
@@ -181,7 +176,7 @@ export default function KanbanBoard() {
 
         const updatedColumns = {
           ...columns,
-          [taskData.status]: { // <--- Use taskData.status
+          [taskData.status]: {
             ...column,
             taskIds: [...column.taskIds, newTaskId],
           },
@@ -219,13 +214,13 @@ export default function KanbanBoard() {
 
     try {
       await axios.delete(`${backendUrl}/tasks/${taskId}`);
-      updateBackend(updatedTasks, updatedColumns); // Ensure backend is updated after delete
+      updateBackend(updatedTasks, updatedColumns);
       showSnackbar("Task deleted successfully");
     } catch (error) {
       console.error("Failed to delete task:", error);
       showSnackbar("Failed to delete task", "error");
-      setTasks(tasks); // Revert on error
-      setColumns(columns); // Revert on error
+      setTasks(tasks);
+      setColumns(columns);
     }
   };
 
@@ -241,7 +236,7 @@ export default function KanbanBoard() {
 
   const handleArchiveTask = async (taskId) => {
     try {
-      const taskToArchive = tasks[taskId]; // Get the task before it's deleted from active
+      const taskToArchive = tasks[taskId];
       await axios.post(`${backendUrl}/tasks/${taskId}/archive`);
 
       const updatedTasks = { ...tasks };
@@ -257,11 +252,11 @@ export default function KanbanBoard() {
 
       setTasks(updatedTasks);
       setColumns(updatedColumns);
-      setArchivedTasks(prev => ({ // Update archivedTasks in state
+      setArchivedTasks(prev => ({
         ...prev,
         [taskId]: { ...taskToArchive, archivedAt: new Date().toISOString() }
       }));
-      updateBackend(updatedTasks, updatedColumns); // Update backend after archive
+      updateBackend(updatedTasks, updatedColumns);
       showSnackbar("Task archived successfully");
     } catch (error) {
       console.error("Failed to archive task:", error);
@@ -272,12 +267,61 @@ export default function KanbanBoard() {
   const handleRestoreTask = async (taskId) => {
     try {
       await axios.post(`${backendUrl}/tasks/${taskId}/restore`);
-      await fetchData(); // Re-fetch all data to ensure consistency on the board
-      await fetchArchivedTasks(); // Re-fetch archived tasks to remove the restored one
+      await fetchData();
+      await fetchArchivedTasks();
       showSnackbar("Task restored successfully");
     } catch (error) {
       console.error("Failed to restore task:", error);
       showSnackbar("Failed to restore task", "error");
+    }
+  };
+
+  const handleAddColumn = (newColumnData) => {
+    const { id, title, taskIds } = newColumnData;
+    const updatedColumns = {
+      ...columns,
+      [id]: { id, title, taskIds },
+    };
+    setColumns(updatedColumns);
+    updateBackend(tasks, updatedColumns);
+    showSnackbar("Column added successfully");
+  };
+
+  // NEW: Function to handle deleting a column and its tasks
+  const handleDeleteColumn = async (columnId) => {
+    if (Object.keys(columns).length <= 1) {
+      showSnackbar("Cannot delete the last column.", "warning");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete the column "${columns[columnId].title}" and all its tasks? This action is permanent.`)) {
+      return;
+    }
+
+    try {
+      const columnToDelete = columns[columnId];
+      const tasksInColumn = columnToDelete.taskIds;
+
+      // Remove tasks associated with this column
+      const updatedTasks = { ...tasks };
+      tasksInColumn.forEach(taskId => {
+        delete updatedTasks[taskId];
+      });
+
+      // Remove the column itself
+      const updatedColumns = { ...columns };
+      delete updatedColumns[columnId];
+
+      setColumns(updatedColumns);
+      setTasks(updatedTasks);
+
+      // Call backend to perform the deletion
+      await axios.delete(`${backendUrl}/columns/${columnId}`);
+      showSnackbar("Column deleted successfully", "success");
+    } catch (error) {
+      console.error("Failed to delete column:", error);
+      showSnackbar("Failed to delete column", "error");
+      fetchData(); // Re-fetch to revert if deletion failed
     }
   };
 
@@ -302,6 +346,9 @@ export default function KanbanBoard() {
           >
             Archived Tasks
           </Button>
+          <Button color="inherit" onClick={() => setAddColumnDialogOpen(true)}>
+            + Add Column
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -317,6 +364,7 @@ export default function KanbanBoard() {
               onEditTask={handleEditTask}
               onDeleteTask={handleDeleteTask}
               onArchiveTask={handleArchiveTask}
+              onDeleteColumn={handleDeleteColumn} // NEW prop
             />
           ))}
         </Box>
@@ -326,12 +374,18 @@ export default function KanbanBoard() {
         open={dialogOpen}
         onClose={() => {
           setDialogOpen(false);
-          setEditingTask(null); // Clear editing task when dialog closes
+          setEditingTask(null);
         }}
         onAdd={handleAddTaskSubmit}
         task={editingTask}
         isEditing={!!editingTask}
-        initialColumnId={activeColumn} // <--- IMPORTANT CHANGE HERE
+        initialColumnId={activeColumn}
+      />
+
+      <AddColumnDialog
+        open={addColumnDialogOpen}
+        onClose={() => setAddColumnDialogOpen(false)}
+        onAdd={handleAddColumn}
       />
 
       <ArchivedTasksDialog

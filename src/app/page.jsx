@@ -8,7 +8,7 @@ const theme = createTheme({
       main: "#1976d2",
     },
     secondary: {
-      main: "#dc004e",
+      main: "#00b4a5",
     },
   },
 })
@@ -16,6 +16,7 @@ const theme = createTheme({
 export default function Home() {
   return (
     <ThemeProvider theme={theme}>
+
       <CssBaseline />
       <KanbanBoard />
     </ThemeProvider>

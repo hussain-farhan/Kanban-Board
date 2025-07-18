@@ -1,8 +1,8 @@
 import React from "react";
-import KanbanBoard from "./components/KanbanBoard";
+import Page from "./app/page";
 
 function App() {
-  return <KanbanBoard />;
+  return<Page />;
 }
 
 export default App;

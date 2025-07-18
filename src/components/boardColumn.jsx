@@ -1,10 +1,10 @@
-import { Paper, Typography, Button, Box } from "@mui/material";
-import { Add as AddIcon } from "@mui/icons-material";
+import { Paper, Typography, Button, Box, IconButton } from "@mui/material";
+import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import { Droppable } from "@hello-pangea/dnd";
 import { TaskCard } from "./taskCard";
 
-// Add onEditTask and onArchiveTask to the props
-export function KanbanColumn({ columnId, title, tasks, onAddTask, onDeleteTask, onEditTask, onArchiveTask }) {
+// The new onDeleteColumn prop is added here
+export function KanbanColumn({ columnId, title, tasks, onAddTask, onDeleteTask, onEditTask, onArchiveTask, onDeleteColumn }) {
   const getColumnColor = (columnId) => {
     switch (columnId) {
       case "todo":
@@ -31,12 +31,21 @@ export function KanbanColumn({ columnId, title, tasks, onAddTask, onDeleteTask, 
       }}
     >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Typography variant="h6" component="h2" sx={{ fontWeight: 600 }}>
+        <Typography variant="h6" component="h2" sx={{ fontWeight: 600, flexGrow: 1 }}>
           {title}
         </Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
           {tasks.filter((t) => t && t.id).length}
         </Typography>
+        <IconButton
+          size="small"
+          onClick={() => onDeleteColumn(columnId)} // NEW: Call the delete function
+          aria-label="delete column"
+          color="error"
+          sx={{ '&:hover': { color: 'error.dark' } }}
+        >
+          <DeleteIcon fontSize="small" />
+        </IconButton>
       </Box>
 
       <Button
@@ -70,8 +79,8 @@ export function KanbanColumn({ columnId, title, tasks, onAddTask, onDeleteTask, 
                   task={task}
                   index={index}
                   onDelete={onDeleteTask}
-                  onEdit={onEditTask} // Pass onEditTask down
-                  onArchive={onArchiveTask} // Pass onArchiveTask down
+                  onEdit={onEditTask}
+                  onArchive={onArchiveTask}
                 />
               ))}
             {provided.placeholder}
